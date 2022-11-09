@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>aliengo_harware_interface</name>
+  <name>aliengo_hardware_interface</name>
   <version>0.0.1</version>
   <description>
       Hardware Abstraction Layer for Aliengo robot to be used with WoLF - Whole Whole-body Locomotion Framework
