@@ -25,10 +25,10 @@ set(ConfigFileInstallDir lib/cmake/aliengohal)
 
 # Unitree-SDK dependency
 find_package(unitreesdk QUIET)
-#if(NOT unitreesdk_FOUND)
+if(NOT unitreesdk_FOUND)
   # Compile and install unitreesdk if it is not already installed
   add_subdirectory(third_party/unitree_legged_sdk)
-#endif()
+endif()
 
 # add_library(aliengohal STATIC  # TODO: decide if want it static or dynamic
 add_library(aliengohal SHARED
