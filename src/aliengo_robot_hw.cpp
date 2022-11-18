@@ -71,6 +71,26 @@ void AliengoRobotHw::init()
     {
       WolfRobotHwInterface::initializeImuInterface(imu_name);
       registerInterface(&imu_sensor_interface_);
+      imu_euler_raw_.resize(3);
+      imu_euler_raw_[0] = 0.0;
+      imu_euler_raw_[1] = 0.0;
+      imu_euler_raw_[2] = 0.0;
+
+      imu_orientation_raw_.resize(4);
+      imu_orientation_raw_[0] = 1.0;
+      imu_orientation_raw_[1] = 0.0;
+      imu_orientation_raw_[2] = 0.0;
+      imu_orientation_raw_[3] = 0.0;
+
+      remove_euler_.resize(3);
+      remove_euler_[0] = 0.0;
+      remove_euler_[1] = 0.0;
+      remove_euler_[2] = 0.0;
+      remove_quaternion_.resize(4);
+      remove_quaternion_[0] = 1.0;
+      remove_quaternion_[1] = 0.0;
+      remove_quaternion_[2] = 0.0;
+      remove_quaternion_[3] = 0.0;
     }
     else
     {
@@ -107,22 +127,41 @@ void AliengoRobotHw::read()
     // ---
     // IMU
     // ---
-    imu_orientation_[0] = static_cast<double>(aliengo_state_.imu.quaternion[0]);  // w
-    imu_orientation_[1] = static_cast<double>(aliengo_state_.imu.quaternion[1]);  // x
-    imu_orientation_[2] = static_cast<double>(aliengo_state_.imu.quaternion[2]);  // y
-    imu_orientation_[3] = static_cast<double>(aliengo_state_.imu.quaternion[3]);  // z
+    if (not is_remove_yaw_set_)
+    {
+      // These lines remove init yaw of the robot
+      remove_euler_[2] = -static_cast<double>(go1_state_.imu.rpy[2]);
+      remove_quaternion_[0] = sin(remove_euler_[2]/2); // w
+      // remove_quaternion[1] = 0.                     // x
+      // remove_quaternion[2] = 0.                     // y
+      remove_quaternion_[3] = cos(remove_euler_[2]/2); // z
+      is_remove_yaw_set_ = true;
+    }
 
-    imu_euler_[0] = static_cast<double>(go1_state_.imu.rpy[0]);  // R
-    imu_euler_[1] = static_cast<double>(go1_state_.imu.rpy[1]);  // P
-    imu_euler_[2] = static_cast<double>(go1_state_.imu.rpy[2]);  // Y
+    imu_orientation_raw_[0] = static_cast<double>(go1_state_.imu.quaternion[0]);  // w
+    imu_orientation_raw_[1] = static_cast<double>(go1_state_.imu.quaternion[1]);  // x
+    imu_orientation_raw_[2] = static_cast<double>(go1_state_.imu.quaternion[2]);  // y
+    imu_orientation_raw_[3] = static_cast<double>(go1_state_.imu.quaternion[3]);  // z
 
-    imu_ang_vel_[0] = static_cast<double>(aliengo_state_.imu.gyroscope[0]);
-    imu_ang_vel_[1] = static_cast<double>(aliengo_state_.imu.gyroscope[1]);
-    imu_ang_vel_[2] = static_cast<double>(aliengo_state_.imu.gyroscope[2]);
+    imu_orientation_[0] = remove_quaternion_[0] * imu_orientation_raw_[0] - remove_quaternion_[3] * imu_orientation_raw_[3];
+    imu_orientation_[1] = remove_quaternion_[0] * imu_orientation_raw_[1] - remove_quaternion_[3] * imu_orientation_raw_[2];
+    imu_orientation_[2] = remove_quaternion_[0] * imu_orientation_raw_[2] + remove_quaternion_[3] * imu_orientation_raw_[1];
+    imu_orientation_[3] = remove_quaternion_[0] * imu_orientation_raw_[3] + remove_quaternion_[3] * imu_orientation_raw_[0];
 
-    imu_lin_acc_[0] = static_cast<double>(aliengo_state_.imu.accelerometer[0]);
-    imu_lin_acc_[1] = static_cast<double>(aliengo_state_.imu.accelerometer[1]);
-    imu_lin_acc_[2] = static_cast<double>(aliengo_state_.imu.accelerometer[2]);
+    imu_euler_raw_[0] = static_cast<double>(go1_state_.imu.rpy[0]);  // R
+    imu_euler_raw_[1] = static_cast<double>(go1_state_.imu.rpy[1]);  // P
+    imu_euler_raw_[2] = static_cast<double>(go1_state_.imu.rpy[2]);  // Y
+    imu_euler_[0] = imu_euler_raw_[0] + remove_euler_[0];
+    imu_euler_[1] = imu_euler_raw_[1] + remove_euler_[1];
+    imu_euler_[2] = imu_euler_raw_[2] + remove_euler_[2];
+
+    imu_ang_vel_[0] = static_cast<double>(go1_state_.imu.gyroscope[0]);
+    imu_ang_vel_[1] = static_cast<double>(go1_state_.imu.gyroscope[1]);
+    imu_ang_vel_[2] = static_cast<double>(go1_state_.imu.gyroscope[2]);
+
+    imu_lin_acc_[0] = static_cast<double>(go1_state_.imu.accelerometer[0]);
+    imu_lin_acc_[1] = static_cast<double>(go1_state_.imu.accelerometer[1]);
+    imu_lin_acc_[2] = static_cast<double>(go1_state_.imu.accelerometer[2]);
 
 
     // Publish the IMU data NOTE: missing covariances
@@ -140,6 +179,7 @@ void AliengoRobotHw::read()
       odom_pub_->unlockAndPublish();
     }
 
+
     if(imu_acc_pub_.get() && imu_acc_pub_->trylock())
     {
       imu_acc_pub_->msg_.x = imu_lin_acc_[0];
@@ -148,7 +188,7 @@ void AliengoRobotHw::read()
       
       imu_acc_pub_->unlockAndPublish();
     }
-    
+
     if(imu_euler_pub_.get() && imu_euler_pub_->trylock())
     {
       imu_euler_pub_->msg_.x = imu_euler_[0];

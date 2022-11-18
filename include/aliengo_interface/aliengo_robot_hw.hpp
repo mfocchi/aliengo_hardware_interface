@@ -69,6 +69,12 @@ private:
   std::shared_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Vector3>> imu_acc_pub_;
   std::shared_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Vector3>> imu_euler_pub_;
 
+  std::vector<double> imu_euler_raw_;
+  std::vector<double> imu_orientation_raw_;
+  std::vector<double> remove_euler_;
+  std::vector<double> remove_quaternion_;
+  bool is_remove_yaw_set_ = false;
+
 };
 
 }
