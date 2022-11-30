@@ -131,10 +131,10 @@ void AliengoRobotHw::read()
     {
       // These lines remove init yaw of the robot
       remove_euler_[2] = -static_cast<double>(go1_state_.imu.rpy[2]);
-      remove_quaternion_[0] = sin(remove_euler_[2]/2); // w
+      remove_quaternion_[0] = cos(remove_euler_[2]/2); // w
       // remove_quaternion[1] = 0.                     // x
       // remove_quaternion[2] = 0.                     // y
-      remove_quaternion_[3] = cos(remove_euler_[2]/2); // z
+      remove_quaternion_[3] = sin(remove_euler_[2]/2); // z
       is_remove_yaw_set_ = true;
     }
 
